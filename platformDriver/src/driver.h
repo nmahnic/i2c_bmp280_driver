@@ -49,7 +49,7 @@ enum {
   BMP280_REGISTER_TEMPDATA = 0xFA,
 };
 
-static struct sensor {
+struct sensor {
   char dig_T1;
   char dig_T2;
   char dig_T3;

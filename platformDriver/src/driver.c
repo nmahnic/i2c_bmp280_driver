@@ -1,11 +1,11 @@
 /***************************************************************************//**
 *  \file       driver.c
 *
-*  \details    Simple I2C driver explanation (SSD_1306 OLED Display Interface)
+*  \details    Simple I2C driver for BMP280
 *
-*  \author     EmbeTronicX
+*  \author     Nicolas Mahnic
 *
-*  \Tested with Linux raspberrypi 5.4.51-v7l+
+*  \Tested with Beaglebone Black rev.C
 *
 * *******************************************************************************/
 #include <linux/module.h>
@@ -26,18 +26,18 @@ static struct i2c_client  *etx_i2c_client_sensor = NULL;  // I2C Cient Structure
  
 static struct sensor bmp280;
 /*
-** This function writes the data into the I2C client
-**
-**  Arguments:
-**      buff -> buffer to be sent
-**      len  -> Length of the data
-**   
+//This function writes the data into the I2C client
+//
+// Arguments:
+//     buff -> buffer to be sent
+//     len  -> Length of the data
+//  
 */
 static int I2C_Write(unsigned char *buf, unsigned int len)
 {
     /*
-    ** Sending Start condition, Slave address with R/W bit, 
-    ** ACK/NACK and Stop condtions will be handled internally.
+    //Sending Start condition, Slave address with R/W bit, 
+    //ACK/NACK and Stop condtions will be handled internally.
     */ 
     int ret = i2c_master_send(etx_i2c_client_sensor, buf, len);
     
@@ -45,18 +45,18 @@ static int I2C_Write(unsigned char *buf, unsigned int len)
 }
  
 /*
-** This function reads one byte of the data from the I2C client
-**
-**  Arguments:
-**      out_buff -> buffer wherer the data to be copied
-**      len      -> Length of the data to be read
-** 
+//This function reads one byte of the data from the I2C client
+//
+// Arguments:
+//     out_buff -> buffer wherer the data to be copied
+//     len      -> Length of the data to be read
+//
 */
 static int I2C_Read(unsigned char *out_buf, unsigned int len)
 {
     /*
-    ** Sending Start condition, Slave address with R/W bit, 
-    ** ACK/NACK and Stop condtions will be handled internally.
+    //Sending Start condition, Slave address with R/W bit, 
+    //ACK/NACK and Stop condtions will be handled internally.
     */ 
     int ret = i2c_master_recv(etx_i2c_client_sensor, out_buf, len);
     
@@ -64,39 +64,40 @@ static int I2C_Read(unsigned char *out_buf, unsigned int len)
 }
  
 /*
-** This function is specific to the SSD_1306 OLED.
-** This function sends the command/data to the OLED.
-**
-**  Arguments:
-**      is_cmd -> true = command, flase = data
-**      data   -> data to be written
-** 
+//This function is specific to the SSD_1306 OLED.
+//This function sends the command/data to the OLED.
+//
+// Arguments:
+//     is_cmd -> true = command, flase = data
+//     data   -> data to be written
+//
 */
+/*
 static void BMP280_Write(bool is_cmd, unsigned char data)
 {
     unsigned char buf[2] = {0};
     int ret;
     
-    /*
-    ** First byte is always control byte. Data is followed after that.
-    **
-    ** There are two types of data in SSD_1306 OLED.
-    ** 1. Command
-    ** 2. Data
-    **
-    ** Control byte decides that the next byte is, command or data.
-    **
-    ** -------------------------------------------------------                        
-    ** |              Control byte's | 6th bit  |   7th bit  |
-    ** |-----------------------------|----------|------------|    
-    ** |   Command                   |   0      |     0      |
-    ** |-----------------------------|----------|------------|
-    ** |   data                      |   1      |     0      |
-    ** |-----------------------------|----------|------------|
-    ** 
-    ** Please refer the datasheet for more information. 
-    **    
-    */ 
+    
+    //First byte is always control byte. Data is followed after that.
+    //
+    //There are two types of data in SSD_1306 OLED.
+    //1. Command
+    //2. Data
+    //
+    //Control byte decides that the next byte is, command or data.
+    //
+    //-------------------------------------------------------                        
+    //|              Control byte's | 6th bit  |   7th bit  |
+    //|-----------------------------|----------|------------|    
+    //|   Command                   |   0      |     0      |
+    //|-----------------------------|----------|------------|
+    //|   data                      |   1      |     0      |
+    //|-----------------------------|----------|------------|
+    //
+    //Please refer the datasheet for more information. 
+    //   
+    
     if( is_cmd == true )
     {
         buf[0] = 0x00;
@@ -110,6 +111,7 @@ static void BMP280_Write(bool is_cmd, unsigned char data)
     
     ret = I2C_Write(buf, 2);
 }
+*/
 
 /*
 static float readTemperature() {
@@ -166,8 +168,8 @@ static int readADC(unsigned char registro)
 }
 */
 /*
-** This function getting called when the slave has been found
-** Note : This will be called only once when we load the driver.
+//This function getting called when the slave has been found
+//Note : This will be called only once when we load the driver.
 */
 static int etx_oled_probe(struct i2c_client *client,
                          const struct i2c_device_id *id)
@@ -176,7 +178,6 @@ static int etx_oled_probe(struct i2c_client *client,
     char reg[1] = {0};
     char data[2] = {0};
     char config[2] = {0};
-    int valor;
 
     config[0] = BMP280_REGISTER_SOFTRESET;      //Le escribo al registro de reset
 	config[1] = MODE_SOFT_RESET_CODE;           //Le escribo el comando RST
@@ -238,13 +239,12 @@ static int etx_oled_probe(struct i2c_client *client,
 }
  
 /*
-** This function getting called when the slave has been removed
-** Note : This will be called only once when we unload the driver.
+//This function getting called when the slave has been removed
+//Note : This will be called only once when we unload the driver.
 */
 static int etx_oled_remove(struct i2c_client *client)
 {     
     int ret;
-    char reg[1] = {0};
     char config[2] = {0};;
 
     config[0] = BMP280_REGISTER_SOFTRESET;      //Le escribo al registro de reset
@@ -256,7 +256,7 @@ static int etx_oled_remove(struct i2c_client *client)
 }
  
 /*
-** Structure that has slave device id
+//Structure that has slave device id
 */
 static const struct i2c_device_id etx_oled_id[] = {
         { SLAVE_DEVICE_NAME, 0 },
@@ -265,7 +265,7 @@ static const struct i2c_device_id etx_oled_id[] = {
 MODULE_DEVICE_TABLE(i2c, etx_oled_id);
  
 /*
-** I2C driver Structure that has to be added to linux
+//I2C driver Structure that has to be added to linux
 */
 static struct i2c_driver etx_sensor_driver = {
         .driver = {
@@ -278,14 +278,14 @@ static struct i2c_driver etx_sensor_driver = {
 };
  
 /*
-** I2C Board Info strucutre
+//I2C Board Info strucutre
 */
 static struct i2c_board_info sensor_i2c_board_info = {
         I2C_BOARD_INFO(SLAVE_DEVICE_NAME, SSD1306_SLAVE_ADDR)
     };
  
 /*
-** Module Init function
+//Module Init function
 */
 static int __init etx_driver_init(void)
 {
@@ -310,7 +310,7 @@ static int __init etx_driver_init(void)
 }
  
 /*
-** Module Exit function
+//Module Exit function
 */
 static void __exit etx_driver_exit(void)
 {
