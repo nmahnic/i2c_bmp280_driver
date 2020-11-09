@@ -3,11 +3,14 @@
 #include <linux/kernel.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
+#include <linux/kdev_t.h> //agregar en /dev
+#include <linux/device.h> //agregar en /dev
+#include <linux/types.h>
 
 #define MENOR          0
 #define CANT_DISP      1
-#define DEVICE_NAME    "td3_myi2c"
-#define CLASS_NAME     "i2c_class"
+#define DEVICE_NAME    "NM_td3_i2c_dev"
+#define CLASS_NAME     "NM_td3_i2c_class"
 
 static struct {
 	dev_t myi2c;
@@ -59,6 +62,23 @@ static int __init i2c_init(void){
 		pr_alert("%s: No es no es posible registrar el dispositivo\n", DEVICE_NAME);
 		return status;
 	}
+
+	/*Creating struct class*/
+	if((state.myi2c_class = class_create(THIS_MODULE,CLASS_NAME)) == NULL){
+		pr_alert("%s: Cannot create the struct class for device\n", DEVICE_NAME);
+		unregister_chrdev_region(state.myi2c, CANT_DISP);
+		return EFAULT;
+	}
+
+	/*Creating device*/
+	if((device_create(state.myi2c_class, NULL, state.myi2c, NULL, DEVICE_NAME)) == NULL){
+		pr_alert("%s: Cannot create the Device\n", DEVICE_NAME);
+		class_destroy(state.myi2c_class);
+    	unregister_chrdev_region(state.myi2c, CANT_DISP);
+		return EFAULT;
+	}
+	pr_alert("%s: Kernel Module Inserted Successfully...\n", DEVICE_NAME);
+
 	return 0;
 }
 
@@ -66,6 +86,10 @@ static void __exit i2c_exit(void){
 	printk(KERN_ALERT "%s: Adios mundo!. Soy el kernel\n", DEVICE_NAME);
 	// cdev_del - remove a cdev from the system - https://manned.org/cdev_del.9
 	cdev_del(state.myi2c_cdev);
+	//
+	device_destroy(state.myi2c_class, state.myi2c);
+	//
+    class_destroy(state.myi2c_class);
 	// unregister_chrdev_region - unregister a range of device numbers - https://manned.org/unregister_chrdev_region.9
 	unregister_chrdev_region(state.myi2c, CANT_DISP);
 }

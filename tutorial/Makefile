@@ -22,7 +22,7 @@ cat:
 
 #instala el modulo
 insmod:
-	sudo insmod src/$(MOD_NAME).ko
+	sudo insmod src/$(MOD_NAME).ko I2C_BUS_AVAILABLE=2
 
 #desinstala el modulo
 rmmod:
@@ -40,3 +40,6 @@ tail:
 
 info:
 	modinfo src/$(MOD_NAME).ko
+
+dev:
+	ls -l /dev/	| grep $(MOD_NAME)

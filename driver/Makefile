@@ -1,5 +1,5 @@
 KERNEL_SOURCE = /lib/modules/$(shell uname -r)/build
-MOD_NAME = td3_myi2c
+MOD_NAME = NM_td3_i2c_dev
 
 # Converts a module object in LKM
 obj-m += src/$(MOD_NAME).o
@@ -40,3 +40,6 @@ tail:
 
 info:
 	modinfo src/$(MOD_NAME).ko
+
+dev:
+	ls -l /dev/	| grep $(MOD_NAME)

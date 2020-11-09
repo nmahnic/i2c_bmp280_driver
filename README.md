@@ -81,3 +81,13 @@ Once the hardware has finished a transaction on the bus (for eg a START conditio
 This continues till whole transactions are over and return back to the client driver.
 
 The point to note here is sleep done by the thread in between each condition. This is why I2C transactions cannot be used in ISRs. For client driver, it is just a simple function like i2c_transfer,i2c_master_send. But it is implemented in the bus driver as explained above.
+
+## INIT
+* Malloc cdev
+* Dynamically Allocating Major and Minor Number
+* Automatically Creating Device File
+    + Include the header file linux/device.h and linux/kdev_t.h
+    + Create the struct Class
+    + Create Device with the class which is created by the above step
+
+## EXIT

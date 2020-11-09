@@ -5,12 +5,13 @@
 *
 *  \author     Nicolas Mahnic
 *
-*  \brief      Using a functions from the bus driver (drivers/i2c/busses/*)
+*  \brief      Using a functions from the bus driver (drivers/i2c/busses/)
 *
 *  \Tested with Linux arm 4.19.94-ti-r36 for Beaglebone Black rev.C
 *
 * *******************************************************************************/
 #include <linux/module.h>
+#include <linux/moduleparam.h>
 #include <linux/init.h>
 #include <linux/slab.h>
 #include <linux/i2c.h>
@@ -19,13 +20,16 @@
 
 #include "driver.h"
  
-#define I2C_BUS_AVAILABLE   (           2 )              // I2C Bus available in our Raspberry Pi
-#define SLAVE_DEVICE_NAME   ( "ETX_BMP280")              // Device and Driver Name
+//#define I2C_BUS_AVAILABLE   (           2 )             // I2C Bus available in our Raspberry Pi
+#define SLAVE_DEVICE_NAME   ( "NMahnic_BMP280")               // Device and Driver Name
 
-static struct i2c_adapter *etx_i2c_adapter     = NULL;  // I2C Adapter Structure
+static struct i2c_adapter *etx_i2c_adapter     = NULL;    // I2C Adapter Structure
 static struct i2c_client  *etx_i2c_client_sensor = NULL;  // I2C Cient Structure (In our case it is SENSOR)
  
 static struct sensor bmp280;
+
+int I2C_BUS_AVAILABLE;                                    // This external param gives number of I2C available
+module_param(I2C_BUS_AVAILABLE, int, S_IWUSR);            //integer value
 
 /*
 ** This function writes the data into the I2C client
@@ -161,6 +165,9 @@ static struct i2c_board_info sensor_i2c_board_info = {
 static int __init etx_driver_init(void)
 {
     int status= -1;
+
+    printk(KERN_INFO "I2C_BUS_AVAILABLE = %d  \n", I2C_BUS_AVAILABLE);
+
     etx_i2c_adapter     = i2c_get_adapter(I2C_BUS_AVAILABLE);
     
     if( etx_i2c_adapter != NULL )
