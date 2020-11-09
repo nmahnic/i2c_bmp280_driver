@@ -37,3 +37,6 @@ awk:
 
 tail:
 	tail -f /var/log/syslog
+
+info:
+	modinfo src/$(MOD_NAME).ko
