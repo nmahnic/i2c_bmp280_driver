@@ -71,3 +71,13 @@ Reg 0xF5      t_sb filter spi3w_en          |7|6|5|4|3|2|1|0|
 
 default set
 normal, Tsamplingx2, Psamplingx16, filterx16, sb500ms 
+
+## How I2C bus driver works
++ I2C client driver initiates transfer using a function like i2c_transfer, i2c_master_send etc.
++ It comes to the master_xfer function in the bus driver (drivers/i2c/busses/*).
++ The bus driver splits the entire transaction into START, STOP, ADDRESS, READ with ACK, READ with NACK, etc. These conditions have to be created on the real i2c bus. The bus driver writes to the I2C hardware adaptor to generate these conditions on the I2C bus one by one, sleeping on a wait queue in between (basically giving the CPU to some other task to do some useful job rather than polling until hardware finishes).
+Once the hardware has finished a transaction on the bus (for eg a START condition), interrupt will be generated and the ISR will wake up the sleeping master_xfer.
++ Once master_xfer wakes up, he will go and advise the hardware adaptor to send the second condition (for eg ADDRESS of the chip).
+This continues till whole transactions are over and return back to the client driver.
+
+The point to note here is sleep done by the thread in between each condition. This is why I2C transactions cannot be used in ISRs. For client driver, it is just a simple function like i2c_transfer,i2c_master_send. But it is implemented in the bus driver as explained above.
