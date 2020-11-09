@@ -7,7 +7,7 @@
 *
 *  \brief      Using a functions from the bus driver (drivers/i2c/busses/*)
 *
-*  \Tested with Linux arm 4.19.94-ti-r36 for Beaglebone Black
+*  \Tested with Linux arm 4.19.94-ti-r36 for Beaglebone Black rev.C
 *
 * *******************************************************************************/
 #include <linux/module.h>

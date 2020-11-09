@@ -323,6 +323,6 @@ module_init(etx_driver_init);
 module_exit(etx_driver_exit);
  
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("EmbeTronicX <embetronicx@gmail.com>");
-MODULE_DESCRIPTION("Simple I2C driver explanation (SSD_1306 OLED Display Interface)");
-MODULE_VERSION("1.34");
+MODULE_AUTHOR("Nicolas Mahnic <nico.mahnic94@gmail.com>");
+MODULE_DESCRIPTION("Simple I2C driver BMP280 SENSOR");
+MODULE_VERSION("0.1");
