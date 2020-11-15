@@ -127,7 +127,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
     iowrite32(0x35, i2c_baseAddr + I2C_SCLL); // tLOW = (SCLL + 7) * ICLK
     iowrite32(0x37, i2c_baseAddr + I2C_SCLH); // tHIGH = (SCLH + 5) * ICLK
     // Random Own Address
-    iowrite32(0x77, i2c_baseAddr + I2C_OA);
+    iowrite32(0x58, i2c_baseAddr + I2C_OA); // como es unico master no importa la direccion
     // I2C_SYSC has 0h value on reset, don't need to be configured.
     // Slave Address
     iowrite32(BMP280_ADDRESS_ALT, i2c_baseAddr + I2C_SA);
@@ -157,7 +157,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 	}
 	pr_info("%s: Numero de IRQ %d\n", DEVICE_NAME, virq);
 
-	
+
 	return 0;
 }
 
