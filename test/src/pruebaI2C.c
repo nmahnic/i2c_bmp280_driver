@@ -5,7 +5,7 @@
 
 // sudo chmod 666 /dev/NM_td3_i2c_dev
 
-void main()
+int  main(void)
 {
 	// Create I2C bus
 	int file;
@@ -13,14 +13,14 @@ void main()
 	char filename[20];
 	//snprintf(filename, 19, "/dev/NM_td3_i2c_dev");
 
-	while (1)
+	if ((file = open("/dev/NM_td3_i2c_dev", O_RDWR)) < 0)
 	{
-		if ((file = open("/dev/NM_td3_i2c_dev", O_RDWR)) < 0)
-		{
-			printf("Failed to open the Chardriver. \n");
-			exit(1);
-		}
-        sleep(5);
-		close(file);
+		printf("Failed to open the Chardriver. \n");
+		exit(1);
 	}
+	printf("El fileDescriptor es %d\n", file);
+	sleep(5);
+	close(file);
+
+	return 0;
 }

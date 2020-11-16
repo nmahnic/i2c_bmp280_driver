@@ -254,6 +254,7 @@ static int clr_charDriver (void){
 
 static int NMopen(struct inode *inode, struct file *file) {
 	pr_alert("%s: OPEN file operation HOLI\n", DEVICE_NAME);
+	return 0;
 }
 
 static int NMrelease(struct inode *inode, struct file *file) {
