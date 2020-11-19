@@ -62,7 +62,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 	
 	pr_alert("%s: Entre al PROBE\n", DEVICE_NAME);
 
-	dev_i2c_baseAddr = of_iomap(i2c_pd->dev.of_node,0);
+	dev_i2c_baseAddr = of_iomap(i2c_pd->dev.of_node,0); // se usa para levantar las direcciones del devTree (no la termino usando)
 	pr_info("%s: dev_i2c_baseAddr: 0x%X\n", DEVICE_NAME, dev_i2c_baseAddr);
 
 	if((cmper_baseAddr = ioremap(CM_PER, CM_PER_LEN)) == NULL)	{
@@ -187,6 +187,8 @@ static int i2c_remove(struct platform_device * i2c_pd) {
 	iounmap(i2c2_baseAddr);
 
 	free_irq(virq, NULL);
+
+	platform_device_unregister(i2c_pd);
 
 	status = clr_charDriver();
 
