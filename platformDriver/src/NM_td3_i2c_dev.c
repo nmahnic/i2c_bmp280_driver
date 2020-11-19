@@ -188,8 +188,6 @@ static int i2c_remove(struct platform_device * i2c_pd) {
 
 	free_irq(virq, NULL);
 
-	platform_device_unregister(i2c_pd);
-
 	status = clr_charDriver();
 
 	return status;
