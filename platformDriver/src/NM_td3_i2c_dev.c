@@ -62,9 +62,11 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 	
 	pr_alert("%s: Entre al PROBE\n", DEVICE_NAME);
 
-	dev_i2c_baseAddr = of_iomap(i2c_pd->dev.of_node,0); // se usa para levantar las direcciones del devTree (no la termino usando)
+	// se usa para levantar las direcciones del devTree (no la termino usando)
+	dev_i2c_baseAddr = of_iomap(i2c_pd->dev.of_node,0); 
 	pr_info("%s: dev_i2c_baseAddr: 0x%X\n", DEVICE_NAME, dev_i2c_baseAddr);
 
+	// ----Mapeo el registro CM_PER----
 	if((cmper_baseAddr = ioremap(CM_PER, CM_PER_LEN)) == NULL)	{
 		pr_alert("%s: No pudo mapear CM_PER\n", DEVICE_NAME);
 		iounmap(dev_i2c_baseAddr);
@@ -81,7 +83,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 	}
 	pr_info("%s: ctlmod_baseAddr: 0x%X\n", DEVICE_NAME, ctlmod_baseAddr);
 
-	// Mapeo el registro I2C2
+	// ----Mapeo el registro I2C2----
 	if((i2c2_baseAddr = ioremap(I2C2, I2C2_LEN)) == NULL) {
 		pr_alert("%s: No pudo mapear I2C\n", DEVICE_NAME);
 		iounmap(dev_i2c_baseAddr);
