@@ -14,6 +14,8 @@ static int clr_charDriver (void);
 static int NMopen(struct inode *inode, struct file *file);
 static int NMrelease(struct inode *inode, struct file *file);
 irqreturn_t i2c_irq_handler(int irq, void *dev_id, struct pt_regs *regs);
+static int change_permission_cdev(struct device *dev, struct kobj_uevent_env *env);
+
 
 static struct {
 	dev_t myi2c;

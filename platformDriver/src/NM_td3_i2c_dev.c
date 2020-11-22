@@ -227,6 +227,9 @@ static int set_charDriver (void){
 		unregister_chrdev_region(state.myi2c, CANT_DISP);
 		return EFAULT;
 	}
+	
+	// change permission /dev/NM_td3_i2c_dev
+	state.myi2c_class->dev_uevent = change_permission_cdev;
 
 	/*Creating device*/
 	if((device_create(state.myi2c_class, NULL, state.myi2c, NULL, DEVICE_NAME)) == NULL){
@@ -250,6 +253,11 @@ static int clr_charDriver (void){
     class_destroy(state.myi2c_class);
 	// unregister_chrdev_region - unregister a range of device numbers - https://manned.org/unregister_chrdev_region.9
 	unregister_chrdev_region(state.myi2c, CANT_DISP);
+}
+
+static int change_permission_cdev(struct device *dev, struct kobj_uevent_env *env){
+    add_uevent_var(env, "DEVMODE=%#o", 0666);
+    return 0;
 }
 
 static int NMopen(struct inode *inode, struct file *file) {
