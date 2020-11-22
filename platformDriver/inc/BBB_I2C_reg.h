@@ -51,7 +51,9 @@
     #define I2C_PSC_VALUE                       0x00000003 // divided by 3, 48MHz/4 = 12MHz (page4589)
 #define I2C_SCLL                                0x000000B4 // Page 4640
     #define I2C_SCLL_MASK                       0x000000FF
-    #define I2C_SCLL_VALUE                      0x00000003 // tLOW = 210nS = 208nS = (3+7)*(1/48MHz)
+    #define I2C_SCLL_400K                       0x00000035 // tLOW = 1,25 uS  = (53+7)*(1/48MHz)
+    #define I2C_SCLL_100K                       0x000000E9 // tLOW = 5 uS  = (233+7)*(1/48MHz)
 #define I2C_SCLH                                0x000000B8 // Page 4641
     #define I2C_SCLH_MASK                       0x000000FF
-    #define I2C_SCLH_VALUE                      0x00000005 // tHIGH = 210nS = 208nS = (5+5)*(1/48MHz)
+    #define I2C_SCLH_400K                       0x00000037 // tHIGH = 1,25 uS = (55+5)*(1/48MHz)
+    #define I2C_SCLH_100K                       0x000000EB // tHIGH = 5 uS = (235+5)*(1/48MHz)

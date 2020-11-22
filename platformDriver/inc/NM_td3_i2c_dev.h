@@ -13,6 +13,7 @@ static int set_charDriver (void);
 static int clr_charDriver (void);
 static int NMopen(struct inode *inode, struct file *file);
 static int NMrelease(struct inode *inode, struct file *file);
+static ssize_t NMread (struct file * device_descriptor, char __user * user_buffer, size_t read_count, loff_t * my_loff_t);
 irqreturn_t i2c_irq_handler(int irq, void *dev_id, struct pt_regs *regs);
 static int change_permission_cdev(struct device *dev, struct kobj_uevent_env *env);
 
@@ -28,7 +29,7 @@ static struct {
 struct file_operations i2c_ops = {
 	.owner = THIS_MODULE,
 	.open = NMopen,
-	//.read = NMread,
+	.read = NMread,
 	//.write = NMwrite,
 	.release = NMrelease,
 	//.ioctl = NMioctl,

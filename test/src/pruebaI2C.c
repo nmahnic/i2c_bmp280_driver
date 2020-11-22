@@ -11,6 +11,8 @@ int  main(void)
 	int file;
 	int adapter_nr = 1;
 	char filename[20];
+	unsigned char buffer[24];
+	int i;
 	//snprintf(filename, 19, "/dev/NM_td3_i2c_dev");
 
 	if ((file = open("/dev/NM_td3_i2c_dev", O_RDWR)) < 0)
@@ -19,7 +21,12 @@ int  main(void)
 		exit(1);
 	}
 	printf("El fileDescriptor es %d\n", file);
-	sleep(5);
+
+	read(file, buffer, 24);
+	for(i = 0; i < 24; ++i)
+        printf("%c \n", buffer[i]);
+    printf("\n");
+
 	close(file);
 
 	return 0;

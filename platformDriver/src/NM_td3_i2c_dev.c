@@ -13,6 +13,7 @@
 #include <linux/delay.h>            // msleep, udelay y ndelay
 #include <linux/uaccess.h>          // copy_to_user - copy_from_user
 #include <linux/types.h>            // typedefs varios
+#include <linux/slab.h>				// kmalloc
 
 
 #include "../inc/BBB_I2C_reg.h"
@@ -116,8 +117,8 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 	// ----Seteo de Registros de los pines I2C----
 	set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_DISABLE); // Disable I2C2.
     set_registers(i2c2_baseAddr, I2C_PSC, I2C_PSC_MASK, I2C_PSC_VALUE); // Prescaler divided by 4
-    set_registers(i2c2_baseAddr, I2C_SCLL, I2C_SCLL_MASK, I2C_SCLL_VALUE); // Configure SCL to 1MHz - tLOW = (SCLL + 7) * ICLK
-	set_registers(i2c2_baseAddr, I2C_SCLH, I2C_SCLH_MASK, I2C_SCLH_VALUE); // tHIGH = (SCLH + 5) * ICLK 
+    set_registers(i2c2_baseAddr, I2C_SCLL, I2C_SCLL_MASK, I2C_SCLL_400K);
+	set_registers(i2c2_baseAddr, I2C_SCLH, I2C_SCLH_MASK, I2C_SCLH_400K);
     set_registers(i2c2_baseAddr, I2C_OA, I2C_OA_MASK, I2C_OA_VALUE); // Random Own Address - como es unico master no importa la direccion
     set_registers(i2c2_baseAddr, I2C_SA, I2C_SA_MASK, BMP280_ADDRESS); // Slave Address
     set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_EN_MST_TX); // configure register -> ENABLE & MASTER & TX & STOP
@@ -174,7 +175,17 @@ void check_registers (void __iomem *base, uint32_t offset, uint32_t mask, uint32
 }
 
 irqreturn_t i2c_irq_handler(int irq, void *dev_id, struct pt_regs *regs) {
-  pr_info("%s: Handler de VIRQ\n", DEVICE_NAME); 
+	pr_info("%s: Handler de VIRQ\n", DEVICE_NAME);
+
+	int irq_i2c_status = ioread32(i2c2_baseAddr + I2C_IRQSTATUS);
+
+	if(irq_i2c_status & I2C_IRQSTATUS_RRDY){
+		pr_info("%s: Handler RX\n", DEVICE_NAME);
+    }
+   
+    if(irq_i2c_status & I2C_IRQSTATUS_XRDY){
+		pr_info("%s: Handler TX\n", DEVICE_NAME);
+	}
 
   return IRQ_HANDLED;
 }
@@ -270,6 +281,35 @@ static int NMopen(struct inode *inode, struct file *file) {
 static int NMrelease(struct inode *inode, struct file *file) {
 	pr_alert("%s: REALEASE file operation HOLI\n", DEVICE_NAME);
     return 0;
+}
+
+static ssize_t NMread (struct file * device_descriptor, char __user * user_buffer, size_t read_count, loff_t * my_loff_t) {
+
+	char * measurement;
+	int i;
+	unsigned long result;
+
+	if ((measurement = (char *) kmalloc (24, GFP_KERNEL)) == NULL){
+		pr_info("%s: Falla reserva de memoria para buffer de lectura\n", DEVICE_NAME);
+		return -1;
+	}
+
+	if(read_count > 24){
+		read_count = 24;
+	}
+
+	// LEER SENSOR
+
+	for (i=0; i<24 ; i++){
+		measurement[i] = 'A'+i;
+	}
+
+	result = copy_to_user(user_buffer, measurement, read_count);
+
+	kfree(measurement);
+	if (!result) // Si todo sale bien, devuelve 0. Yo devuelvo la cant. de bytes copiados
+		return (ssize_t)read_count;
+	return 0;	//	Sino, devuelvo 0
 }
 
 module_init(i2c_init);
