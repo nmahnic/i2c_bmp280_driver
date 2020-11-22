@@ -1,7 +1,7 @@
 /dts-v1/;
 
 / {
-	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx", "NM_td3_i2c_dev";
+	compatible = "ti,am335x-bone-black", "ti,am335x-bone", "ti,am33xx";
 	interrupt-parent = < 0x01 >;
 	#address-cells = < 0x01 >;
 	#size-cells = < 0x01 >;
@@ -1424,8 +1424,8 @@
 			phandle = < 0xad >;
 		};
 
-		i2c_td3@4819c000 {
-			compatible = "NM_td3_i2c_dev";
+		i2c@4819c000 {
+			compatible = "ti,omap4-i2c";
 			#address-cells = < 0x01 >;
 			#size-cells = < 0x00 >;
 			ti,hwmods = "i2c3";
