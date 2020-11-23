@@ -22,6 +22,9 @@ int  main(void)
 	}
 	printf("El fileDescriptor es %d\n", file);
 
+	char reg[1] = {0x88};
+ 	write(file, reg, 1);
+
 	read(file, buffer, 24);
 	for(i = 0; i < 24; ++i)
         printf("%c \n", buffer[i]);

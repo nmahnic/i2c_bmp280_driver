@@ -9,12 +9,12 @@
 // Config de Control Module (page180)
 #define CTRL_MODULE_BASE                        0x44E10000
 #define CTRL_MODULE_LEN                         0x00002000 // 8K la datasheet dice 128k pero el fin es en 0x44E11FFF
-#define CTRL_MODULE_UART1_CTSN_OFFSET           0x00000978
-#define CTRL_MODULE_UART1_RTSN_OFFSET           0x0000097C
+#define CTRL_MODULE_UART1_CTSN                  0x00000978 //pin 20 = sda  (page1461)
+#define CTRL_MODULE_UART1_RTSN                  0x0000097C //pin 19 = scl  (page1461)
 #define CTRL_MODULE_UART1_MASK                  0x0000000E
 //Habilita capacidad de pines (page 1515) 
-//Fast | Reciever Enable | Pullup | Pullup/pulldown disabled | I2C2_SCL
-#define CTRL_MODULE_UART1_I2C_VALUE             0x0000003B // 00111011b 
+// Reserved | Fast | Reciever Enable | Pullup Selected | Pullup/pulldown enable | I2C2_SCL
+#define CTRL_MODULE_I2C_PINMODE                 0x00000033 // 0011 0011b 
 
 // Config de Control Module (page183)
 #define I2C2                                    0x4819C000
@@ -28,11 +28,15 @@
 #define I2C_IRQSTATUS                           0x00000028 // Page 4612
 #define I2C_IRQENABLE_SET                       0x0000002C // Page 4614
     #define I2C_IRQENABLE_SET_MASK              0x00006FFF 
-    #define I2C_IRQENABLE_SET_VALUE             0x00000000
+    #define I2C_IRQENABLE_SET_RX                0x00000008
+    #define I2C_IRQENABLE_SET_TX                0x00000010
 #define I2C_IRQENABLE_CLR                       0x00000030 // Page 4616
     #define I2C_IRQENABLE_CLR_MASK              0x00006FFF
     #define I2C_IRQENABLE_CLR_ALL               0x00000000
+    #define I2C_IRQENABLE_CLR_RX                0x00000008
+    #define I2C_IRQENABLE_CLR_TX                0x00000010
 #define I2C_CNT                                 0x00000098 // Page 4632
+    #define I2C_CNT_MASK                        0x000000FF
 #define I2C_DATA                                0x0000009C // Page 4633
 // inicializacion el I2Ci
 #define I2C_CON                                 0x000000A4 // Page 4634

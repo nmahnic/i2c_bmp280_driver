@@ -1,7 +1,7 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/kdev_t.h> //agregar en /dev
-#include <linux/device.h> //agregar en /dev
+#include <linux/kdev_t.h> 			//agregar en /dev
+#include <linux/device.h> 			//agregar en /dev
 #include <linux/cdev.h>             // Char device: File operation struct,
 #include <linux/fs.h>               // Header for the Linux file system support (alloc_chrdev_region y unregister_chrdev_region)
 #include <linux/module.h>           // Core header for loading LKMs into the kernel
@@ -20,6 +20,10 @@
 #include "../inc/BMP280_reg.h"
 #include "../inc/NM_td3_i2c_dev.h"
 
+static DECLARE_WAIT_QUEUE_HEAD (queue_rx);
+static DECLARE_WAIT_QUEUE_HEAD (queue_tx);
+static unsigned int wakeup_rx=0;
+static unsigned int wakeup_tx=0;
 static void __iomem  *dev_i2c_baseAddr, *cmper_baseAddr, *ctlmod_baseAddr, *i2c2_baseAddr;
 volatile int virq;
 
@@ -65,7 +69,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 
 	// se usa para levantar las direcciones del devTree (no la termino usando)
 	dev_i2c_baseAddr = of_iomap(i2c_pd->dev.of_node,0); 
-	pr_info("%s: dev_i2c_baseAddr: 0x%X\n", DEVICE_NAME, dev_i2c_baseAddr);
+	pr_info("%s: dev_i2c_baseAddr: 0x%X\n", DEVICE_NAME, (unsigned int)dev_i2c_baseAddr);
 
 	// ----Mapeo el registro CM_PER----
 	if((cmper_baseAddr = ioremap(CM_PER, CM_PER_LEN)) == NULL)	{
@@ -73,7 +77,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 		iounmap(dev_i2c_baseAddr);
 		return 1;
 	}
-	pr_info("%s: cmper_baseAddr: 0x%X\n", DEVICE_NAME, cmper_baseAddr);
+	pr_info("%s: cmper_baseAddr: 0x%X\n", DEVICE_NAME, (unsigned int)cmper_baseAddr);
 
 	// ----Mapeo el registro CONTROL MODULE----
 	if((ctlmod_baseAddr = ioremap(CTRL_MODULE_BASE, CTRL_MODULE_LEN)) == NULL) {
@@ -82,7 +86,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 		iounmap(cmper_baseAddr);
 		return 1;
 	}
-	pr_info("%s: ctlmod_baseAddr: 0x%X\n", DEVICE_NAME, ctlmod_baseAddr);
+	pr_info("%s: ctlmod_baseAddr: 0x%X\n", DEVICE_NAME, (unsigned int)ctlmod_baseAddr);
 
 	// ----Mapeo el registro I2C2----
 	if((i2c2_baseAddr = ioremap(I2C2, I2C2_LEN)) == NULL) {
@@ -92,7 +96,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 		iounmap(ctlmod_baseAddr);
 		return 1;
 	}
-	pr_info("%s: i2c2_baseAddr: 0x%X\n", DEVICE_NAME, i2c2_baseAddr);
+	pr_info("%s: i2c2_baseAddr: 0x%X\n", DEVICE_NAME, (unsigned int)i2c2_baseAddr);
 
 	// ----Habilito el clock del I2C----
 	set_registers(cmper_baseAddr, 
@@ -105,20 +109,20 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 
 	// ----Habilito el capacidades de pines de SDA y SCL-----
 	set_registers(ctlmod_baseAddr, 
-				  CTRL_MODULE_UART1_CTSN_OFFSET,
+				  CTRL_MODULE_UART1_CTSN,
 				  CTRL_MODULE_UART1_MASK,
-				  CTRL_MODULE_UART1_I2C_VALUE);
+				  CTRL_MODULE_I2C_PINMODE);
 
 	set_registers(ctlmod_baseAddr, 
-				  CTRL_MODULE_UART1_RTSN_OFFSET,
+				  CTRL_MODULE_UART1_RTSN,
 				  CTRL_MODULE_UART1_MASK,
-				  CTRL_MODULE_UART1_I2C_VALUE);
+				  CTRL_MODULE_I2C_PINMODE);
 
 	// ----Seteo de Registros de los pines I2C----
 	set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_DISABLE); // Disable I2C2.
     set_registers(i2c2_baseAddr, I2C_PSC, I2C_PSC_MASK, I2C_PSC_VALUE); // Prescaler divided by 4
-    set_registers(i2c2_baseAddr, I2C_SCLL, I2C_SCLL_MASK, I2C_SCLL_400K);
-	set_registers(i2c2_baseAddr, I2C_SCLH, I2C_SCLH_MASK, I2C_SCLH_400K);
+    set_registers(i2c2_baseAddr, I2C_SCLL, I2C_SCLL_MASK, I2C_SCLL_100K);
+	set_registers(i2c2_baseAddr, I2C_SCLH, I2C_SCLH_MASK, I2C_SCLH_100K);
     set_registers(i2c2_baseAddr, I2C_OA, I2C_OA_MASK, I2C_OA_VALUE); // Random Own Address - como es unico master no importa la direccion
     set_registers(i2c2_baseAddr, I2C_SA, I2C_SA_MASK, BMP280_ADDRESS); // Slave Address
     set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_EN_MST_TX); // configure register -> ENABLE & MASTER & TX & STOP
@@ -149,6 +153,11 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 
 	status = set_charDriver();
 
+	if ((data_i2c.buff_rx = (char *) __get_free_page(GFP_KERNEL)) < 0){
+		pr_alert("%s: Falla al pedir memoria\n", DEVICE_NAME);
+		return -1;
+	}
+
 	return status;
 }
 
@@ -157,7 +166,7 @@ void set_registers (void __iomem *base, uint32_t offset, uint32_t mask, uint32_t
   	old_value &= ~(mask);
   	value &= mask;
   	value |= old_value;
-	pr_info("%s: dirAddr: 0x%X value:0x%X\n", DEVICE_NAME, base+offset, value);
+	pr_info("%s: dirAddr: 0x%X value:0x%X\n", DEVICE_NAME, (unsigned int)base+offset, value);
   	iowrite32 (value, base + offset);
 }
 
@@ -170,21 +179,37 @@ void check_registers (void __iomem *base, uint32_t offset, uint32_t mask, uint32
 		iounmap(ctlmod_baseAddr);
 		iounmap(i2c2_baseAddr);
     }else{
-		pr_info("%s: dirAddr: 0x%X, checker is OK\n", DEVICE_NAME, base+offset);
+		pr_info("%s: dirAddr: 0x%X, checker is OK\n", DEVICE_NAME, (unsigned int)base+offset);
 	}
 }
 
 irqreturn_t i2c_irq_handler(int irq, void *dev_id, struct pt_regs *regs) {
-	pr_info("%s: Handler de VIRQ\n", DEVICE_NAME);
-
+	char aux = 0;
 	int irq_i2c_status = ioread32(i2c2_baseAddr + I2C_IRQSTATUS);
+	pr_info("%s: Handler de VIRQ\n", DEVICE_NAME);
 
 	if(irq_i2c_status & I2C_IRQSTATUS_RRDY){
 		pr_info("%s: Handler RX\n", DEVICE_NAME);
+		data_i2c.buff_rx[data_i2c.pos_rx] = ioread32(i2c2_baseAddr + I2C_DATA);
+		aux = data_i2c.buff_rx[data_i2c.pos_rx];
+		pr_info("%s: Dato leido %d\n", DEVICE_NAME,(unsigned int)aux);
+		data_i2c.pos_rx++;
+		
+		if(data_i2c.buff_rx_len == data_i2c.pos_rx){ // si termino de leer todos los bytes despierta al proceso
+			wakeup_rx = 1;
+			wake_up_interruptible(&queue_rx);	
+		}
     }
    
     if(irq_i2c_status & I2C_IRQSTATUS_XRDY){
 		pr_info("%s: Handler TX\n", DEVICE_NAME);
+		iowrite32(data_i2c.buff_tx[data_i2c.pos_tx], i2c2_baseAddr + I2C_DATA);
+		data_i2c.pos_tx++;
+		
+		if(data_i2c.buff_tx_len == data_i2c.pos_tx){ // si escribio todos los bytes que debia despierta el proceso
+			wakeup_tx = 1;
+			wake_up_interruptible(&queue_tx);	
+		}
 	}
 
   return IRQ_HANDLED;
@@ -266,6 +291,8 @@ static int clr_charDriver (void){
     class_destroy(state.myi2c_class);
 	// unregister_chrdev_region - unregister a range of device numbers - https://manned.org/unregister_chrdev_region.9
 	unregister_chrdev_region(state.myi2c, CANT_DISP);
+
+	return 0;
 }
 
 static int change_permission_cdev(struct device *dev, struct kobj_uevent_env *env){
@@ -283,33 +310,74 @@ static int NMrelease(struct inode *inode, struct file *file) {
     return 0;
 }
 
-static ssize_t NMread (struct file * device_descriptor, char __user * user_buffer, size_t read_count, loff_t * my_loff_t) {
+static ssize_t NMread (struct file * device_descriptor, char __user * user_buffer, size_t read_len, loff_t * my_loff_t) {
 
-	char * measurement;
-	int i;
 	unsigned long result;
+	pr_info("%s: Inicia lectura\n", DEVICE_NAME);
 
-	if ((measurement = (char *) kmalloc (24, GFP_KERNEL)) == NULL){
+	if(read_len > 24){
+		read_len = 24;
+	}
+
+	while (ioread32(i2c2_baseAddr + I2C_IRQSTATUS_RAW) & 0x1000){msleep(1);} //espero que el bus este vacio
+
+	data_i2c.buff_rx_len = read_len;
+	data_i2c.pos_rx = 0;
+	wakeup_rx = 0;
+
+	set_registers(i2c2_baseAddr, I2C_CNT, I2C_CNT_MASK, read_len);	// cant de elementos a leer			
+	set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_EN_MST_RX); // modo recepcion
+	set_registers(i2c2_baseAddr, I2C_IRQENABLE_SET, I2C_IRQENABLE_SET_MASK, I2C_IRQENABLE_SET_RX); //habilito interrupciones
+	set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_START);
+	wait_event_interruptible (queue_rx, wakeup_rx > 0);  //tarea en TASK_INTERRUPTIBLE hasta cumplir condicion
+	set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_STOP);
+
+	if((result = copy_to_user(user_buffer, data_i2c.buff_rx, read_len))>0){			//en copia correcta devuelve 0
+		pr_info("%s: Falla en copia de buffer de kernel a buffer de usuario\n", DEVICE_NAME);
+		return -1;
+	}
+
+	if (!result) // Si todo sale bien, devuelve 0. Yo devuelvo la cant. de bytes copiados
+		return (ssize_t)read_len;
+	return 0;	//	Sino, devuelvo 0
+}
+
+static ssize_t NMwrite (struct file * device_descriptor, const char __user * user_buffer, size_t write_len, loff_t * my_loff_t){
+	pr_info("%s: Inicia escritura\n", DEVICE_NAME);
+
+	if(write_len > 2){
+		write_len = 2;
+	}
+
+	if ((data_i2c.buff_tx = (char *) kmalloc (write_len, GFP_KERNEL)) == NULL){
 		pr_info("%s: Falla reserva de memoria para buffer de lectura\n", DEVICE_NAME);
 		return -1;
 	}
 
-	if(read_count > 24){
-		read_count = 24;
+	if(copy_from_user(data_i2c.buff_tx, user_buffer ,write_len)>0){				//en copia correcta devuelve 0
+		pr_info("%s: Falla al copiar de buffer de usuario a buffer de kernel\n", DEVICE_NAME);
+		return -1;
 	}
 
-	// LEER SENSOR
+	while (ioread32(i2c2_baseAddr + I2C_IRQSTATUS_RAW) & 0x1000){msleep(1);} //espero que el bus este vacio
 
-	for (i=0; i<24 ; i++){
-		measurement[i] = 'A'+i;
-	}
+	data_i2c.buff_tx_len = write_len;
+	data_i2c.pos_tx = 0;
+	wakeup_tx = 0;
 
-	result = copy_to_user(user_buffer, measurement, read_count);
+	set_registers(i2c2_baseAddr, I2C_CNT, I2C_CNT_MASK, write_len);	// cant de elementos a leer			
+	set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_EN_MST_TX); // modo recepcion
+	set_registers(i2c2_baseAddr, I2C_IRQENABLE_SET, I2C_IRQENABLE_SET_MASK, I2C_IRQENABLE_SET_TX); //habilito interrupciones
+	set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_START);
+	pr_info("%s: LLEGUE 1\n", DEVICE_NAME);
+	wait_event_interruptible (queue_tx, wakeup_tx > 0);  //tarea en TASK_INTERRUPTIBLE hasta cumplir condicion
+	pr_info("%s: LLEGUE 2\n", DEVICE_NAME);
+	set_registers(i2c2_baseAddr, I2C_CON, I2C_CON_MASK, I2C_CON_STOP);
 
-	kfree(measurement);
-	if (!result) // Si todo sale bien, devuelve 0. Yo devuelvo la cant. de bytes copiados
-		return (ssize_t)read_count;
-	return 0;	//	Sino, devuelvo 0
+	kfree(data_i2c.buff_tx);
+
+	pr_info("%s: Finaliza escritura\n", DEVICE_NAME);
+	return write_len;
 }
 
 module_init(i2c_init);
