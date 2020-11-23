@@ -176,6 +176,7 @@ static int i2c_probe(struct platform_device * i2c_pd) {
 	}while(ioread32(cmper_baseAddr + CM_PER_I2C2_CLKCTRL_OFFSET) != 2);
     msleep(10); // Wait until the clock is ready.
 
+	pr_info("%s: Termina PROBE ..\n", DEVICE_NAME);
 	return status;
 }
 
@@ -214,7 +215,7 @@ irqreturn_t i2c_irq_handler(int irq, void *dev_id, struct pt_regs *regs) {
 static int i2c_remove(struct platform_device * i2c_pd) {
 	int status = 0;
 	
-	pr_alert("%s: Sali del REMOVE\n", DEVICE_NAME);
+	pr_alert("%s: Entre al REMOVE\n", DEVICE_NAME);
 	iounmap(dev_i2c_baseAddr);
 	iounmap(cmper_baseAddr);
 	iounmap(ctlmod_baseAddr);
@@ -222,6 +223,7 @@ static int i2c_remove(struct platform_device * i2c_pd) {
 
 	free_irq(virq, NULL);
 
+	pr_alert("%s: Salí del REMOVE\n", DEVICE_NAME);
 	return status;
 }
 
@@ -267,8 +269,15 @@ static int NMrelease(struct inode *inode, struct file *file) {
 
 static ssize_t NMread (struct file * device_descriptor, char __user * user_buffer, size_t read_len, loff_t * my_loff_t) {
 	int status = 0;
+	int i;
+
 	if (access_ok(VERIFY_WRITE, user_buffer, read_len) == 0){
 		pr_alert("%s: Falla buffer de usuario\n", DEVICE_NAME);
+		return -1;
+	}
+
+	if (write_len > PAGE_SIZE){
+		pr_alert("%s: El kernel reserva una pagina\n", DEVICE_NAME);
 		return -1;
 	}
 
@@ -278,7 +287,9 @@ static ssize_t NMread (struct file * device_descriptor, char __user * user_buffe
 
 	while (ioread32(i2c2_baseAddr + I2C_IRQSTATUS_RAW) & 0x1000){msleep(1);} //espero que el bus este vacio
 
-	data_i2c.buff_rx[0] = readByteBMP280();
+	for(i = 0; i < read_len ; i++){
+		data_i2c.buff_rx[i] = readByteBMP280();
+	}
 
 	if((status = copy_to_user(user_buffer, data_i2c.buff_rx, read_len))>0){			//en copia correcta devuelve 0
 		pr_info("%s: Falla en copia de buffer de kernel a buffer de usuario\n", DEVICE_NAME);
@@ -304,8 +315,6 @@ static ssize_t NMwrite (struct file * device_descriptor, const char __user * use
 		return -1;
 	}
 
-	while (ioread32(i2c2_baseAddr + I2C_IRQSTATUS_RAW) & 0x1000){msleep(1);} //espero que el bus este vacio
-
 	writeBMP280 (data_i2c.buff_tx, sizeof(data_i2c.buff_tx));
 
 	kfree(data_i2c.buff_tx);
@@ -322,35 +331,34 @@ void writeBMP280 (char *writeData, int writeData_size){
     // Check irq status (occupied or free)
     while (ioread32(i2c2_baseAddr + I2C_IRQSTATUS_RAW) & 0x1000){msleep(1);} //espero que el bus este vacio
 
-    // Load data to the variable of the irq.
+    // Cargo las condiciones iniciales en el objeto que el handler actualiza
 	data_i2c.buff_tx = writeData;
 	data_i2c.buff_tx_len = writeData_size;
 	data_i2c.pos_tx = 0;
 	wakeup_tx = 0;
 
-    // Set the data length to 1 byte.
+    // Cargo la cantidad de bytes a enviar
     iowrite32(writeData_size, i2c2_baseAddr + I2C_CNT);
 
-    // Set I2C_CON to Master transmitter.
-    //  0000 0110 0000 0000 b = 0x600
+    // Setea en modo transmision
     aux_regValue = ioread32(i2c2_baseAddr + I2C_CON);
     aux_regValue |= 0x600;
     iowrite32(aux_regValue, i2c2_baseAddr + I2C_CON);
 
-    // Transmit data ready IRQ enabled status => Transmit data ready.
+    // Habilita interrupcion de Tx
     iowrite32(I2C_IRQSTATUS_XRDY, i2c2_baseAddr + I2C_IRQENABLE_SET);
 
-    // Start condition queried.
+    // Condicion de start
     aux_regValue = ioread32(i2c2_baseAddr + I2C_CON);
     aux_regValue |= I2C_CON_START;
     iowrite32(aux_regValue, i2c2_baseAddr + I2C_CON);
 
-    // Wait transmission end.
+    // Pone en esta interrupible al proceso que escribe hasta que termine de hacerse todas las escrituras
 	wait_event_interruptible (queue_tx, wakeup_tx > 0);
 
     wakeup_tx = 0;
 
-    // Stop condition queried. (Must clear I2C_CON_STT).
+    // se limpia el bit de start y se levanta el bit de stop
     aux_regValue = ioread32(i2c2_baseAddr + I2C_CON);
     aux_regValue &= 0xFFFFFFFE;
     aux_regValue |= I2C_CON_STOP;
@@ -363,48 +371,45 @@ void writeBMP280 (char *writeData, int writeData_size){
 
 uint8_t readByteBMP280(void){
     uint32_t aux_regValue = 0;
-    uint8_t readData;
 
     pr_info("%s: Inicia lectura\n", DEVICE_NAME);
 
-    // Check irq status (occupied or free)
+    // Espero que el bus se libere
     while (ioread32(i2c2_baseAddr + I2C_IRQSTATUS_RAW) & 0x1000){msleep(1);} //espero que el bus este vacio
 
-
+	// Cargo las condiciones iniciales en el objeto que el handler actualiza
 	data_i2c.buff_rx_len = 1;
 	data_i2c.pos_rx = 0;
 	wakeup_rx = 0;
+
     // Set the data length to 1 byte.
     iowrite32(1, i2c2_baseAddr + I2C_CNT);
 
-    // configure register -> ENABLE & MASTER & RX & STOP
+    // Setea en modo recepcion
     aux_regValue = 0x8400;
     iowrite32(aux_regValue, i2c2_baseAddr + I2C_CON);
 
-    // Receive data ready IRQ enabled status => Receive data available.
+    //habilitacion de interrupcion de rx
     iowrite32(I2C_IRQSTATUS_RRDY, i2c2_baseAddr + I2C_IRQENABLE_SET);
 
-    // Start condition queried. (Must clear I2C_CON_STP).
+    //se activa bit de start
     aux_regValue = ioread32(i2c2_baseAddr + I2C_CON);
     aux_regValue &= 0xFFFFFFFC;
     aux_regValue |= I2C_CON_START;
     iowrite32(aux_regValue, i2c2_baseAddr + I2C_CON);
 
-    // Wait reception end.
+    //tarea en TASK_INTERRUPTIBLE hasta cumplir condicion
     wait_event_interruptible (queue_rx, wakeup_rx > 0);  //tarea en TASK_INTERRUPTIBLE hasta cumplir condicion
 
     wakeup_rx = 0;
 
-    // Stop condition queried. (Must clear I2C_CON_STT).
+    //se envia condicion de stop
     aux_regValue = ioread32(i2c2_baseAddr + I2C_CON);
     aux_regValue &= 0xFFFFFFFE;
     aux_regValue |= I2C_CON_STOP;
     iowrite32(aux_regValue, i2c2_baseAddr + I2C_CON);
 
-    // Retrieve data.
-    readData = data_i2c.buff_rx[data_i2c.pos_rx];
-
-    return readData;
+    return data_i2c.buff_rx[data_i2c.pos_rx];
 }
 
 
