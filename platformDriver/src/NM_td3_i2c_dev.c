@@ -254,9 +254,9 @@ static int NMopen(struct inode *inode, struct file *file) {
 		return -1;
 	}
 
-	config[0] = BMP280_REGISTER_SOFTRESET;      //Le escribo al registro de reset
-	config[1] = MODE_SOFT_RESET_CODE;           //Le escribo el comando RST
-	writeBMP280 (config, sizeof(config));
+	//config[0] = BMP280_REGISTER_SOFTRESET;      //Le escribo al registro de reset
+	//config[1] = MODE_SOFT_RESET_CODE;           //Le escribo el comando RST
+	//writeBMP280 (config, sizeof(config));
 	return 0;
 }
 
