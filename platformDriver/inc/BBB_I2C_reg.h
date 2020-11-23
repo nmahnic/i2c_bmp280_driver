@@ -11,10 +11,10 @@
 #define CTRL_MODULE_LEN                         0x00002000 // 8K la datasheet dice 128k pero el fin es en 0x44E11FFF
 #define CTRL_MODULE_UART1_CTSN                  0x00000978 //pin 20 = sda  (page1461)
 #define CTRL_MODULE_UART1_RTSN                  0x0000097C //pin 19 = scl  (page1461)
-#define CTRL_MODULE_UART1_MASK                  0x0000000E
+#define CTRL_MODULE_UART1_MASK                  0x0000007F
 //Habilita capacidad de pines (page 1515) 
 // Reserved | Fast | Reciever Enable | Pullup Selected | Pullup/pulldown enable | I2C2_SCL
-#define CTRL_MODULE_I2C_PINMODE                 0x00000033 // 0011 0011b 
+#define CTRL_MODULE_I2C_PINMODE                 0x00000023 // 0010 0011b 
 
 // Config de Control Module (page183)
 #define I2C2                                    0x4819C000
@@ -46,9 +46,9 @@
     #define I2C_CON_EN_MST_RX                   0x00008400
 #define I2C_OA                                  0x000000A8 // Page 4637
     #define I2C_OA_MASK                         0x000000FF
-    #define I2C_OA_VALUE                        0x00000050 // dir random porque no uso multimaster
+    #define I2C_OA_VALUE                        0x00000036 // dir random porque no uso multimaster
 #define I2C_SA                                  0x000000AC // Page 4638
-    #define I2C_SA_MASK                         0x000000FF
+    #define I2C_SA_MASK                         0x000001FF
     #define I2C_SA_ADDRESS                      BMP280_ADDRESS
 #define I2C_PSC                                 0x000000B0 // Page 4639, el SystemClock es 48MHz CREO
     #define I2C_PSC_MASK                        0x000000FF

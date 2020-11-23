@@ -29,6 +29,12 @@
 #define    BMP280_ADDRESS       0x77 /**< The default I2C address for the sensor. */
 #define    BMP280_ADDRESS_ALT   0x76 /**< Alternative I2C address for the sensor. */
 
+#define MENOR          0
+#define CANT_DISP      1
+#define DEVICE_NAME    "NM_td3_i2c_dev"
+#define CLASS_NAME     "NM_td3_i2c_class"
+#define COMPATIBLE	   "NM_td3_i2c_dev"
+
 enum {
   BMP280_REGISTER_DIG_T1 = 0x88,
   BMP280_REGISTER_DIG_T2 = 0x8A,
@@ -67,3 +73,39 @@ struct sensor {
   char dig_P8;
   char dig_P9;
 }; 
+
+static int change_permission_cdev(struct device *dev, struct kobj_uevent_env *env);
+static int NMopen(struct inode *inode, struct file *file);
+static int NMrelease(struct inode *inode, struct file *file);
+static ssize_t NMread (struct file * device_descriptor, char __user * user_buffer, size_t read_len, loff_t * my_loff_t);
+static ssize_t NMwrite (struct file * device_descriptor, const char __user * user_buffer, size_t write_len, loff_t * my_loff_t);
+
+struct file_operations i2c_ops = {
+	.owner = THIS_MODULE,
+	.open = NMopen,
+	.read = NMread,
+	.write = NMwrite,
+	.release = NMrelease,
+	//.ioctl = NMioctl,
+};
+
+static struct {
+	int pos_rx;
+	int buff_rx_len;
+	int data_rx;
+
+	int pos_tx;
+	int buff_tx_len;
+	int data_tx;
+
+	char * buff_rx;
+	char * buff_tx;
+} data_i2c;
+
+static struct {
+	dev_t myi2c;
+
+	struct cdev * myi2c_cdev;
+	struct device * myi2c_device;
+	struct class * myi2c_class;
+} state;

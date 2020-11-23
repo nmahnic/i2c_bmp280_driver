@@ -7,16 +7,14 @@
 // Prototipos
 static int i2c_probe(struct platform_device * i2c_pd);
 static int i2c_remove(struct platform_device * i2c_pd);
-void set_registers (void __iomem *base, uint32_t offset, uint32_t mask, uint32_t value);
-void check_registers (void __iomem *base, uint32_t offset, uint32_t mask, uint32_t value);	
-static int set_charDriver (void);
-static int clr_charDriver (void);
 static int NMopen(struct inode *inode, struct file *file);
 static int NMrelease(struct inode *inode, struct file *file);
 static ssize_t NMread (struct file * device_descriptor, char __user * user_buffer, size_t read_len, loff_t * my_loff_t);
 static ssize_t NMwrite (struct file * device_descriptor, const char __user * user_buffer, size_t write_len, loff_t * my_loff_t);
 irqreturn_t i2c_irq_handler(int irq, void *dev_id, struct pt_regs *regs);
 static int change_permission_cdev(struct device *dev, struct kobj_uevent_env *env);
+void writeBMP280 (char *writeData, int writeData_size);
+uint8_t readByteBMP280(void);
 
 
 static struct {
