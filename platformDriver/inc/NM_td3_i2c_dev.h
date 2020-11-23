@@ -15,6 +15,7 @@ irqreturn_t i2c_irq_handler(int irq, void *dev_id, struct pt_regs *regs);
 static int change_permission_cdev(struct device *dev, struct kobj_uevent_env *env);
 void writeBMP280 (char *writeData, int writeData_size);
 uint8_t readByteBMP280(void);
+uint8_t readBMP280(int inicio,int len);
 
 
 static struct {

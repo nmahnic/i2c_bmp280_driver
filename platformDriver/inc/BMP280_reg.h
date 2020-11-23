@@ -25,9 +25,11 @@
 #define    STANDBY_MS_125       0x02
 #define    STANDBY_MS_250       0x03
 #define    STANDBY_MS_500       0x04
-#define    STANDBY_MS_1000      0x05
+#define    STANDBY_MS_1000      0xA5
 #define    STANDBY_MS_2000      0x06
 #define    STANDBY_MS_4000      0x07
+
+#define    WEARTHER_MONITOR     0x27
 
 enum {
   BMP280_REGISTER_DIG_T1 = 0x88,
@@ -53,17 +55,25 @@ enum {
   BMP280_REGISTER_TEMPDATA = 0xFA,
 };
 
-struct sensor {
-  char dig_T1;
-  char dig_T2;
-  char dig_T3;
-  char dig_P1;
-  char dig_P2;
-  char dig_P3;
-  char dig_P4;
-  char dig_P5;
-  char dig_P6;
-  char dig_P7;
-  char dig_P8;
-  char dig_P9;
-}; 
+static struct {
+  int dig_T1;
+  int dig_T2;
+  int dig_T3;
+  int dig_P1;
+  int dig_P2;
+  int dig_P3;
+  int dig_P4;
+  int dig_P5;
+  int dig_P6;
+  int dig_P7;
+  int dig_P8;
+  int dig_P9;
+  long adc_p;
+  long adc_t;
+  float var1;
+  float var2;
+  float t_fine;
+	float cTemp;
+  float p;
+  float pressure;
+} sensor; 
