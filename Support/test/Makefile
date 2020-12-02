@@ -1,4 +1,6 @@
-exec=pruebaI2C
+#exec=test
+exec=testdriver3
+#exec=pruebaI2C
 
 all:
 	mkdir -p obj
